@@ -1,0 +1,148 @@
+<!doctype html>
+<!--[if lt IE 7]> <html class="no-js ie  lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js ie7 lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js ie8 lt-ie9"> <![endif]-->
+<!--[if IE 9]>    <html class="no-js ie9"> <![endif]-->
+<!--[if gt IE 9]><!--> <html class="no-js"> <!--<![endif]-->
+<head>
+    <script type="text/json" id="splunkd-partials">
+{"/services/session":{"messages":[],"links":{},"entry":[{"fields":{"optional":[],"required":[],"wildcard":[]},"acl":{"perms":{"write":[],"read":[]}},"links":{},"content":{"hasLoggedIn":true,"cval":782316482,"time":1422642980,"lang":"en-US","bump":0,"uid":"24B1894B-3598-4A4C-A744-96AD3A8C0FB9"}}],"generator":{}},"/services/server/info":{"messages":[],"links":{},"entry":[{"fields":{"optional":[],"required":[],"wildcard":[]},"acl":{"perms":{"write":[],"read":[]}},"links":{},"content":{"build":245427,"isTrial":false,"isFree":true,"cpu_arch":"x86_64","guid":"E3C4EFEF-0653-44BC-8C1F-1CB703636BE0","version":"6.2.1","license_labels":["Splunk Free"],"serverName":"a1-haken-base1","licenseState":"OK","master_guid":"E3C4EFEF-0653-44BC-8C1F-1CB703636BE0","os_name":"Linux","product_type":"splunk"}}],"generator":{}},"/configs/conf-web":{"messages":[],"links":{},"entry":[{"fields":{"optional":[],"required":[],"wildcard":[]},"acl":{"perms":{"write":[],"read":[]}},"links":{},"content":{"enable_autocomplete_login":false,"updateCheckerBaseURL":"https://quickdraw.splunk.com/js/","login_content":"","root_endpoint":"","minify_js":true,"minify_css":true,"js_no_cache":false}}],"generator":{}}}
+    </script>
+    <script>
+        "object"!=typeof JSON&&(JSON={}),function(){"use strict";function f(a){return 10>a?"0"+a:a}function quote(a){return escapable.lastIndex=0,escapable.test(a)?'"'+a.replace(escapable,function(a){var b=meta[a];return"string"==typeof b?b:"\\u"+("0000"+a.charCodeAt(0).toString(16)).slice(-4)})+'"':'"'+a+'"'}function str(a,b){var c,d,e,f,h,g=gap,i=b[a];switch(i&&"object"==typeof i&&"function"==typeof i.toJSON&&(i=i.toJSON(a)),"function"==typeof rep&&(i=rep.call(b,a,i)),typeof i){case"string":return quote(i);case"number":return isFinite(i)?String(i):"null";case"boolean":case"null":return String(i);case"object":if(!i)return"null";if(gap+=indent,h=[],"[object Array]"===Object.prototype.toString.apply(i)){for(f=i.length,c=0;f>c;c+=1)h[c]=str(c,i)||"null";return e=0===h.length?"[]":gap?"[\n"+gap+h.join(",\n"+gap)+"\n"+g+"]":"["+h.join(",")+"]",gap=g,e}if(rep&&"object"==typeof rep)for(f=rep.length,c=0;f>c;c+=1)"string"==typeof rep[c]&&(d=rep[c],e=str(d,i),e&&h.push(quote(d)+(gap?": ":":")+e));else for(d in i)Object.prototype.hasOwnProperty.call(i,d)&&(e=str(d,i),e&&h.push(quote(d)+(gap?": ":":")+e));return e=0===h.length?"{}":gap?"{\n"+gap+h.join(",\n"+gap)+"\n"+g+"}":"{"+h.join(",")+"}",gap=g,e}}"function"!=typeof Date.prototype.toJSON&&(Date.prototype.toJSON=function(){return isFinite(this.valueOf())?this.getUTCFullYear()+"-"+f(this.getUTCMonth()+1)+"-"+f(this.getUTCDate())+"T"+f(this.getUTCHours())+":"+f(this.getUTCMinutes())+":"+f(this.getUTCSeconds())+"Z":null},String.prototype.toJSON=Number.prototype.toJSON=Boolean.prototype.toJSON=function(){return this.valueOf()});var cx,escapable,gap,indent,meta,rep;"function"!=typeof JSON.stringify&&(escapable=/[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,meta={"\b":"\\b","  ":"\\t","\n":"\\n","\f":"\\f","\r":"\\r",'"':'\\"',"\\":"\\\\"},JSON.stringify=function(a,b,c){var d;if(gap="",indent="","number"==typeof c)for(d=0;c>d;d+=1)indent+=" ";else"string"==typeof c&&(indent=c);if(rep=b,b&&"function"!=typeof b&&("object"!=typeof b||"number"!=typeof b.length))throw new Error("JSON.stringify");return str("",{"":a})}),"function"!=typeof JSON.parse&&(cx=/[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,JSON.parse=function(text,reviver){function walk(a,b){var c,d,e=a[b];if(e&&"object"==typeof e)for(c in e)Object.prototype.hasOwnProperty.call(e,c)&&(d=walk(e,c),void 0!==d?e[c]=d:delete e[c]);return reviver.call(a,b,e)}var j;if(text=String(text),cx.lastIndex=0,cx.test(text)&&(text=text.replace(cx,function(a){return"\\u"+("0000"+a.charCodeAt(0).toString(16)).slice(-4)})),/^[\],:{}\s]*$/.test(text.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g,"@").replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g,"]").replace(/(?:^|:|,)(?:\s*\[)+/g,"")))return j=eval("("+text+")"),"function"==typeof reviver?walk({"":j},""):j;throw new SyntaxError("JSON.parse")})}();
+        var __splunkd_partials__ = JSON.parse(document.getElementById('splunkd-partials').innerHTML);
+        //HTML helpers
+        var script = function(attributes) {
+            var container = document.createElement('div'),
+                content = document.createElement('script');
+            content.setAttribute('type', 'text/template');
+            for (var attribute in attributes) {
+                if (attributes.hasOwnProperty(attribute) && attribute!=='text/javascript') {
+                    if (attribute==='innerText') {
+                        content.innerHTML = attributes[attribute];
+                    } else {
+                        content.setAttribute(attribute, attributes[attribute]);
+                    }
+                }
+            }
+            container.appendChild(content)
+            return container.innerHTML.replace(/ type=["]?text\/template["]?/, '');
+        }
+        //URI route functions
+        var baseRoute = function(path) {
+            var url = '',
+                rootEndpoint  = __splunkd_partials__['/configs/conf-web'].entry[0].content.root_endpoint || '';
+            //strip leading '/'
+            rootEndpoint = rootEndpoint.replace(/\/^/, '');
+            //strip trailing '/'
+            rootEndpoint = rootEndpoint.replace(/\/$/, '');
+            if (rootEndpoint) {
+                url = '/' + rootEndpoint;
+            }
+            return url + '/' + encodeURIComponent(__splunkd_partials__['/services/session'].entry[0].content.lang) +  path
+        };
+        var staticRoute = function(path) {
+            var bump = __splunkd_partials__['/services/session'].entry[0].content.bump,
+                buildBump = '@' + __splunkd_partials__['/services/server/info'].entry[0].content.build;
+            if (bump) {
+                buildBump += '.' + bump;
+            }
+            return baseRoute('/static/' + buildBump + path);
+        };
+        //page/handler
+        var page;
+        //login, logout and password_change share a single page router (account) and do not support non-minified mode
+        if (window.location.pathname.match(/account\/login|account\/logout|account\/password_change/).length) {
+            page = 'account';
+            __splunkd_partials__['/configs/conf-web'].entry[0].content.minify_js = true;
+            __splunkd_partials__['/configs/conf-web'].entry[0].content.minify_css = true;
+        } else {
+            page = window.location.pathname.split('/').slice(-1)[0];
+        }
+        //DOM manipulation
+        document.documentElement.setAttribute('lang', __splunkd_partials__['/services/session'].entry[0].content.lang);
+    </script>
+    <script>
+      var product_type = __splunkd_partials__['/services/server/info'].entry[0].content.product_type,
+          faviconFile;
+
+       if (product_type == 'hunk') {
+          faviconFile = 'favicon_hunk.ico';
+       } else if (product_type.indexOf('lite') != -1) {
+          faviconFile = 'favicon_lite.ico';
+       } else {
+          faviconFile = 'favicon.ico';
+       }
+
+       document.write('<meta charset="utf-8" />');
+       document.write('<meta http-equiv="X-UA-Compatible" content="IE=edge" />');
+       document.write('<title></title>');
+       document.write('<meta name="description" content="listen to your data" />');
+       document.write('<meta name="author" content="Splunk Inc." />');
+       document.write('<meta name="viewport" content="width=1024, initial-scale=1.0" />');
+       document.write('<link rel="shortcut icon" href="' + staticRoute('/img/' + faviconFile) + '" />');
+       document.write('<link rel="apple-touch-icon-precomposed" sizes="57x57" href="' + staticRoute('/img/bookmark/apple-icon-57x57-precomposed.png')  + '" />');
+       document.write('<link rel="apple-touch-icon-precomposed" sizes="72x72" href="' + staticRoute('/img/bookmark/apple-icon-72x72-precomposed.png')  + '" />');
+       document.write('<link rel="apple-touch-icon-precomposed" sizes="114x114" href="' + staticRoute('/img/bookmark/apple-icon-114x114-precomposed.png')  + '" />');
+       document.write('<link rel="apple-touch-icon-precomposed" sizes="144x144" href="' + staticRoute('/img/bookmark/apple-icon-144x144-precomposed.png') + '" />');
+       document.write('<meta name="msapplication-TileColor" content="#65A637">');
+       document.write('<meta name="msapplication-TileImage" content="' + staticRoute('/img/bookmark/ms-tileicon-144x144.png') + '">');
+       var page_css = page.replace(/_/g,'-');
+       if (__splunkd_partials__['/configs/conf-web'].entry[0].content.minify_css) {
+           document.write('<link rel="stylesheet" type="text/css" href="' + staticRoute('/css/build/bootstrap.min.css') + '" />');
+           document.write('<link rel="stylesheet" type="text/css" href="' + staticRoute('/css/build/pages/' + page_css + '-bootstrap.min.css')  + '" />');
+       } else {
+           document.write('<link rel="stylesheet/less" type="text/css" media="all" href="' + staticRoute('/less/base/bootstrap.less') + '" />');
+           document.write('<link rel="stylesheet/less" type="text/css" media="all" href="' + staticRoute('/less/pages/' + page_css  + '-bootstrap.less') + '" />');
+           document.write('<!-- no cache fix for when not on localhost -->');
+           document.write(script({type: "text/javascript", innerText: "less = {}; less.env = 'development'"})); 
+           document.write(script({src: staticRoute('js/contrib/less-1.7.3.min.js')}));
+       }
+       document.write('<!--[if IE 7]><link rel="stylesheet" href="' + staticRoute('/css/sprites-ie7.css')  + '"><![endif]-->');
+    </script>
+</head>
+<body>
+    <!-- live to code, code to live... -->
+    <div id="browser-not-supported" style="display:none;"></div>
+    <script>
+        document.body.className = (__splunkd_partials__['/services/server/info'].entry[0].content.product_type.indexOf('lite')!=-1) ? 'lite' : __splunkd_partials__['/services/server/info'].entry[0].content.product_type;
+        document.write(script({src: baseRoute('/config?autoload=1')}));
+        document.write(script({src: staticRoute('/js/i18n.js')}));
+        document.write(script({src: baseRoute('/i18ncatalog?autoload=1')}));
+        if (__splunkd_partials__['/configs/conf-web'].entry[0].content.minify_js) {
+            document.write(script({src: staticRoute('/js/build/' + page + 'page.js')}));
+        } else {
+            document.write(script({src: staticRoute('/js/contrib/require.js')}));
+            document.write(script({src: staticRoute('/js/profiles/shared.js')}));
+            document.write(script({innerText: "require.config({ baseUrl: '" + staticRoute('/js') + "'})"}));
+            if (__splunkd_partials__['/configs/conf-web'].entry[0].content.js_no_cache) {
+                document.write(script({innerText: "require.config({ urlArgs: 'bust=" +  (new Date()).getTime() + "'})"}));
+            }
+            document.write(script({innerText: "require([ 'pages/" + page + "' ]);"}));
+        }
+    </script>
+    <script>
+        // If jQuery failed to bootstrap, then assume we have an unsupported browser and display a message.
+        // This code must be in a separate script tag so that it will wait for the i18n.js resource to load before executing.
+        // NOTE: The 'en-DEBUG' locale relies on jQuery so that cannot be used to test these extractions.
+        if(!window.jQuery) {
+            var notSupportedEl = document.getElementById('browser-not-supported');
+            // NOTE: The following translations must be duplicated in routers/Account.js in order to work correctly.
+            // If you make changes to these strings, also update their counterpart in Account.js.
+            notSupportedEl.innerHTML = ([
+                '<p>',
+                gettext('This browser is not supported by Splunk.'),
+                '<br />',
+                gettext('Please refer to the list of %s.').replace('%s', '<a href="#">' + gettext('Supported Browsers') + '</a>'),
+                '</p>'
+            ]).join('');
+            var docLinkEl = notSupportedEl.getElementsByTagName('a')[0];
+            docLinkEl.href = baseRoute('/help?location=learnmore.systemrequirements');
+            notSupportedEl.style.display = 'block';
+        }
+    </script>
+    <noscript>
+         <p>Splunk relies on JavaScript to function properly.<br>Please enable JavaScript and then refresh the page to login.</p>
+    </noscript>
+</body>
+</html>
