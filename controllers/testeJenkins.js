@@ -6,7 +6,7 @@ module.exports = function(app) {
 
   //jira
   var usernameJira = "peo_cbrossa";
-  var passwordJira = "1010J2010k";
+  var passwordJira = "xxx";
   var auth = "Basic " + new Buffer(usernameJira + ":" + passwordJira).toString("base64");
   var https = require('https');
   var optionsJiraDefault = {
@@ -205,13 +205,15 @@ module.exports = function(app) {
       var nameCurrentClass = listNameClass[i];
       var metodos = classList[nameCurrentClass];
       if(metodos){
-        for(var x = 0; x < metodos.length; x++){         
+        totalTestesComErro = totalTestesComErro + metodos.length;
+        searchJiraCallParent(metodos); 
+        /*for(var x = 0; x < metodos.length; x++){         
           if(metodos[x] != null){
             totalTestesComErro++;       
             //console.log('busca esse: ' + metodos[x].nameClass +'.'+metodos[x].method);     
-            searchJiraCall(metodos[x]); 
+            searchJiraCall(metodos[x], metodos); 
           }   
-        }  
+        }*/  
       }  
       //classList[i] = metodos;
     }
@@ -222,8 +224,8 @@ module.exports = function(app) {
     response.send(objResponse);
   }
   
-  function searchJiraCall(metodo){
-
+  function searchJiraCallParent(metodos){
+    var metodo = metodos[0];
     function searchCallBack(res) {
       //console.log("search statusCode: ", res.statusCode);
       //console.log("headers: ", res);      
@@ -239,11 +241,12 @@ module.exports = function(app) {
           //metodos = metodos.splice(x, 1);                
         }else if(result.total == 1 && result.issues[0].fields.status.id != 6){            
           console.log("Update Jira is not implemented." + metodo.jiraName);
+          verificaFilhos(metodos, result.issues[0].id);
           //classList[i].jiraQueryJson[x] = undefined;
           //metodos = metodos.splice(x, 1);                
         }else{
           console.log('jira sera criado : '+ metodo.jiraName);
-          //criaJira(metodo);
+          criaJira(metodos);
         }
       });
     }
@@ -259,6 +262,46 @@ module.exports = function(app) {
     }); 
 
   };
+
+    function searchJiraCallParent(metodos){
+    var metodo = metodos[0];
+    function searchCallBack(res) {
+      //console.log("search statusCode: ", res.statusCode);
+      //console.log("headers: ", res);      
+
+      res.on('data', function(chunk) {
+        process.stdout.write(chunk);
+        //console.log('BODY: ' + chunk);
+        var result = JSON.parse(chunk);
+        //console.log("find result", result);
+        if(result.total > 1){
+          console.log('Foi encontrado mais de um result, nao foi possivel criar ou fazer update '  + metodo.jiraName);
+          //classList[i].jiraQueryJson[x] = undefined;
+          //metodos = metodos.splice(x, 1);                
+        }else if(result.total == 1 && result.issues[0].fields.status.id != 6){            
+          console.log("Update Jira is not implemented." + metodo.jiraName);
+          verificaFilhos(metodos, result.issues[0].id);
+          //classList[i].jiraQueryJson[x] = undefined;
+          //metodos = metodos.splice(x, 1);                
+        }else{
+          console.log('jira sera criado : '+ metodo.jiraName);
+          criaJira(metodos);
+        }
+      });
+    }
+
+    var searchOptions = new optionsJiraSearchIssue(metodo.jiraQueryJson);            
+
+    var req = https.request(searchOptions, searchCallBack);
+    req.write(metodo.jiraQueryJson);
+    req.end();
+
+    req.on('error', function(e) {
+      console.error(e);
+    }); 
+
+  };
+
 
   var criaJira = function(jira){
 
