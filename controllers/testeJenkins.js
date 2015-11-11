@@ -5,8 +5,8 @@ module.exports = function(app) {
   var eventEmitter = new events.EventEmitter();  
 
   //jira
-  var usernameJira = "ccc";
-  var passwordJira = "xxxx";
+  var usernameJira = "peo_cbrossa";
+  var passwordJira = "1010J2010k";
   var auth = "Basic " + new Buffer(usernameJira + ":" + passwordJira).toString("base64");
   var https = require('https');
   var optionsJiraDefault = {
@@ -32,27 +32,24 @@ module.exports = function(app) {
 
   var optionsBuild = {    
     path: '/job/{teste}/{job}/testReport/api/json'
-  };
-  
-  eventEmitter.on('findLastBuildEvents', function(res, lastBuilds, testesIntegracao){    
+  };  
 
+  //event listener para prosseguir com a busca de detalhes de todos testes que estao quebrados
+  eventEmitter.on('findLastBuildEvents', function(res, lastBuilds, testesIntegracao){    
      if(lastBuilds.length == testesIntegracao.length){        
         buscarDetalheBuild(res, lastBuilds);
      }
   });
 
-    eventEmitter.on('buscarDetalheBuild', function(res, errosBuilds, lastBuilds){             
-      //console.log('asasasasasasasaaaaaaaa', errosBuilds); 
-     if(lastBuilds.length == errosBuilds.length){        
-        console.log("chegou no total aeee - " + errosBuilds.length); 
-        var jsondata = JSON.stringify(errosBuilds);
-        //console.log("result - " + jsondata);        
-        //res.send(errosBuilds);
-        prepareJiras(res, errosBuilds, lastBuilds);
+  //event listener para prosseguir com as buscas no jira e criacao
+  eventEmitter.on('buscarDetalheBuild', function(res, errosBuilds, lastBuilds, buildsWithError){                   
+     if(lastBuilds.length == errosBuilds.length){                
+        var jsondata = JSON.stringify(errosBuilds);          
+        prepareJiras(res, errosBuilds, lastBuilds, buildsWithError);
      }
   });
   
-
+  //busca todos os testes de integracao existentes no jenkins  
   var buscarTestesIntegracao = function(res){
       http.get(optionsTestesIntegracao, function(response){
         var str = '';
@@ -73,6 +70,7 @@ module.exports = function(app) {
       }).end();
   };
 
+  //procura ultimo build que foi executado de cada teste
   var findLastBuild = function(testesIntegracao, res){
     var lastBuilds = new Array();
     for(var i = 0; i < testesIntegracao.length; i++){
@@ -101,27 +99,28 @@ module.exports = function(app) {
   }; 
 
   var headers = {
-    "accept-charset" : "ISO-8859-1,utf-8;q=0.7,*;q=0.3",
-    //"accept-language" : "en-US,en;q=0.8",
+    "accept-charset" : "ISO-8859-1,utf-8;q=0.7,*;q=0.3",    
     "accept" : "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
   };
 
+  //prepara para busca no jenkins todos os testes quebrados de cada teste
   var buscarDetalheBuild = function(res, lastBuilds){
     var errosBuilds = new Array();
     //console.log(lastBuilds);
+    var buildsWithError = new Array();  
     for (var k = 0; k < lastBuilds.length; k++) {        
         var optionsBuildCurrent = new Object();
         optionsBuildCurrent.host = host;
         optionsBuildCurrent.headers = headers;
         optionsBuildCurrent.path = optionsBuild.path.replace('{job}', lastBuilds[k].itemId).replace('{teste}', lastBuilds[k].displayName);                
         //console.log(optionsBuildCurrent.path);
-        detailbuild(res, optionsBuildCurrent, lastBuilds, errosBuilds, k);
+        detailbuild(res, optionsBuildCurrent, lastBuilds, errosBuilds, k, buildsWithError);
     }
   };
 
-  var detailbuild = function(res, optionsBuildCurrent, lastBuilds, errosBuilds, k){    
-    http.get(optionsBuildCurrent, function(response) {
-          //console.log(optionsBuildCurrent.host + optionsBuildCurrent.path);
+  //busca no jenkins todos os testes quebrados de cada teste
+  var detailbuild = function(res, optionsBuildCurrent, lastBuilds, errosBuilds, k, buildsWithError){    
+    http.get(optionsBuildCurrent, function(response) {          
           var str = '';
 
           response.on('data', function (chunk) {
@@ -149,6 +148,7 @@ module.exports = function(app) {
                 };
               };
             }catch(error){
+              buildsWithError.push(lastBuilds[k].displayName);
               console.log("Erro ao obter testes do job. Provalvelmente o job foi interrompido. nameJob=" + lastBuilds[k].displayName)
             }
             var errBuild = new Object();
@@ -157,7 +157,7 @@ module.exports = function(app) {
             errosBuilds.push(errBuild);  
             //console.log('errosBuilds length - ' + errosBuilds.length);
             //console.log('k length - ' + k);
-            eventEmitter.emit('buscarDetalheBuild', res, errosBuilds, lastBuilds);                          
+            eventEmitter.emit('buscarDetalheBuild', res, errosBuilds, lastBuilds, buildsWithError);                          
           });
 
         }).end();  
@@ -166,14 +166,110 @@ module.exports = function(app) {
   //fim jenkins
 
 
-    var criaJiras = function(jira, nameJira){
-      console.log('jira', jira);
+
+  //separando testes quebrados do jenkins por classe para poder criar no jira como subtasks
+  var prepareJiras = function(res, errosBuilds, lastBuilds, buildsWithError){    
+    var classList = new Object();
+    var listNameClass = new Array();
+    //console.log("errosBuilds", errosBuilds);
+    for(var i = 0; i < errosBuilds.length; i++){
+      if(errosBuilds[i].testes){
+        for(var b = 0; b < errosBuilds[i].testes.length; b++){        
+          var testeAtual = errosBuilds[i].testes[b];                  
+          if(testeAtual != undefined){      
+
+            var nameClass = testeAtual.className;
+            if(!classList[nameClass]) classList[nameClass] = new Array();   
+
+            var method = testeAtual.name;
+            var jiraName = nameClass + "." + method;          
+            var jiraQuery = new jiraJql(jiraName);
+            var searchParams = new jiraSearchParams(jiraQuery.jql);
+            var jsondata = JSON.stringify(searchParams);
+            var jiraClass = new jiraClassObj(method, nameClass, jiraName, jsondata);
+
+            classList[nameClass].push(jiraClass);
+            if(listNameClass.indexOf(nameClass) == -1) listNameClass.push(nameClass);
+          }          
+        }
+      }    
+    }    
+    searchJiras(res, classList, listNameClass, errosBuilds, buildsWithError);
+  };
+
+  
+  var searchJiras = function(response, classList, listNameClass, errosBuilds, buildsWithError){
+    
+    var totalTestesComErro = 0;
+    for(var i = 0; i < listNameClass.length; i++){
+      var nameCurrentClass = listNameClass[i];
+      var metodos = classList[nameCurrentClass];
+      if(metodos){
+        for(var x = 0; x < metodos.length; x++){         
+          if(metodos[x] != null){
+            totalTestesComErro++;       
+            //console.log('busca esse: ' + metodos[x].nameClass +'.'+metodos[x].method);     
+            searchJiraCall(metodos[x]); 
+          }   
+        }  
+      }  
+      //classList[i] = metodos;
+    }
+
+    var objResponse = new Object();
+    objResponse.totalErros = totalTestesComErro;
+    objResponse.buildsWithError = buildsWithError;
+    response.send(objResponse);
+  }
+  
+  function searchJiraCall(metodo){
+
+    function searchCallBack(res) {
+      //console.log("search statusCode: ", res.statusCode);
+      //console.log("headers: ", res);      
+
+      res.on('data', function(chunk) {
+        process.stdout.write(chunk);
+        //console.log('BODY: ' + chunk);
+        var result = JSON.parse(chunk);
+        //console.log("find result", result);
+        if(result.total > 1){
+          console.log('Foi encontrado mais de um result, nao foi possivel criar ou fazer update '  + metodo.jiraName);
+          //classList[i].jiraQueryJson[x] = undefined;
+          //metodos = metodos.splice(x, 1);                
+        }else if(result.total == 1 && result.issues[0].fields.status.id != 6){            
+          console.log("Update Jira is not implemented." + metodo.jiraName);
+          //classList[i].jiraQueryJson[x] = undefined;
+          //metodos = metodos.splice(x, 1);                
+        }else{
+          console.log('jira sera criado : '+ metodo.jiraName);
+          //criaJira(metodo);
+        }
+      });
+    }
+
+    var searchOptions = new optionsJiraSearchIssue(metodo.jiraQueryJson);            
+
+    var req = https.request(searchOptions, searchCallBack);
+    req.write(metodo.jiraQueryJson);
+    req.end();
+
+    req.on('error', function(e) {
+      console.error(e);
+    }); 
+
+  };
+
+  var criaJira = function(jira){
+
+    console.log('jira', jira);
+
     if(jira){  
       var data = new Object;
       data.fields = {
           project : {key: 'HANOI'},
           issuetype : {id: '1'},
-          summary : nameJira,
+          summary : jira.jiraName,
           labels: ["jenkins_test"],
           description: jira.errorDetails
       };
@@ -199,86 +295,6 @@ module.exports = function(app) {
       });
     }
   };
-
-  var prepareJiras = function(res, errosBuilds, lastBuilds){    
-    var classList = new Object();
-    var listNameClass = new Array();
-    //console.log("errosBuilds", errosBuilds);
-    for(var i = 0; i < errosBuilds.length; i++){
-      if(errosBuilds[i].testes){
-        for(var b = 0; b < errosBuilds[i].testes.length; b++){        
-          var testeAtual = errosBuilds[i].testes[b];                  
-          if(testeAtual != undefined){      
-
-            var nameClass = testeAtual.className;
-            if(!classList[nameClass]) classList[nameClass] = new Array();   
-
-            var method = testeAtual.name;
-            var jiraName = nameClass + "." + method;          
-            var jiraQuery = new jiraJql(jiraName);
-            var searchParams = new jiraSearchParams(jiraQuery.jql);
-            var jsondata = JSON.stringify(searchParams);
-            var jiraClass = new jiraClassObj(method, nameClass, jiraName, jsondata);
-
-            classList[nameClass].push(jiraClass);
-            if(listNameClass.indexOf(nameClass) == -1) listNameClass.push(nameClass);
-          }          
-        }
-      }    
-    }
-    //console.log("ClassLit", classList);
-    searchJiras(res, classList, listNameClass);
-  };
-
-  
-
-
-  var searchJiras = function(response, classList, listNameClass){
-    
-    for(var i = 0; i < listNameClass.length; i++){
-      var nameCurrentClass = listNameClass[1];
-      var metodos = classList[nameCurrentClass];
-      if(metodos){
-        for(var x = 0; x < metodos.length; x++){         
-          if(metodos[x]){
-            var searchOptions = new optionsJiraSearchIssue(metodos[x].jiraQueryJson);
-
-            var req = https.request(searchOptions, function(res) {
-              console.log("search statusCode: ", res.statusCode);
-              //console.log("headers: ", res.headers);      
-
-              res.on('data', function(chunk) {
-                process.stdout.write(chunk);
-                //console.log('BODY: ' + chunk);
-                var result = JSON.parse(chunk);
-                console.log("find result", result);
-                if(result.total > 1){
-                  console.log('Foi encontrado mais de um result, nao foi possivel criar ou fazer update '  + metodos[x].nameClass + metodos[x].method);
-                  //classList[i].jiraQueryJson[x] = undefined;
-                  metodos = metodos.splice(x, 1);                
-                }else if(result.total == 1 && result.issues[0].fields.status.id != 6){            
-                  console.log("Update Jira is not implemented." + metodos[x].nameClass + metodos[x].method);
-                  //classList[i].jiraQueryJson[x] = undefined;
-                  metodos = metodos.splice(x, 1);                
-                }else{
-                  console.log('jira sera criado : ' + metodos[x] + metodos[x]);            
-                  //TODO SAPORRA TA NULL
-                }
-              });
-            });
-            req.write(metodos[x].jiraQueryJson);
-            req.end();
-
-            req.on('error', function(e) {
-              console.error(e);
-            }); 
-          }   
-        }  
-      }  
-      classList[i] = metodos;
-    }
-    response.send(classList);
-  }
 
   function jiraClassObj(method, nameClass, jiraName, jiraQueryJson){
     this.method = method;
@@ -324,9 +340,7 @@ module.exports = function(app) {
 
 
   var teste = function(req, res){
-  buscarTestesIntegracao(res);
-  //buscaJiras();  
-  //criaJiras();
+    buscarTestesIntegracao(res);
   };
 
   
