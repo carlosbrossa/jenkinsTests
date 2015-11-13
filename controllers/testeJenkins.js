@@ -4,19 +4,21 @@ module.exports = function(app) {
   var events = require('events');
   var eventEmitter = new events.EventEmitter();  
 
+  var hashListCacheBuild = new Object();
+
   //jira
   var usernameJira = "peo_cbrossa";
-  var passwordJira = "xxx";
+  var passwordJira = "ccx";
   var auth = "Basic " + new Buffer(usernameJira + ":" + passwordJira).toString("base64");
   var https = require('https');
   var optionsJiraDefault = {
-    hostname: 'jira.intranet.uol.com.br',
+    hostname: 'jira.intranet.s.com.br',
     port: 443,
     path: '/jira/rest/api/2/issue/HANOI-267',    
     headers: {
       'Authorization': 'Basic ' + new Buffer(usernameJira + ':' + passwordJira).toString('base64')
     } 
-  };
+  };  
   //fim jira
 
   //jenkins
@@ -51,6 +53,10 @@ module.exports = function(app) {
   
   //busca todos os testes de integracao existentes no jenkins  
   var buscarTestesIntegracao = function(res){
+      var hashkey = Math.floor((Math.random() * 100000) + 1);
+      res.hashKey = hashkey;
+      hashListCacheBuild[hashkey] = new jiraResponse();
+
       http.get(optionsTestesIntegracao, function(response){
         var str = '';
           response.on('data', function (chunk) {
@@ -105,15 +111,13 @@ module.exports = function(app) {
 
   //prepara para busca no jenkins todos os testes quebrados de cada teste
   var buscarDetalheBuild = function(res, lastBuilds){
-    var errosBuilds = new Array();
-    //console.log(lastBuilds);
+    var errosBuilds = new Array();    
     var buildsWithError = new Array();  
     for (var k = 0; k < lastBuilds.length; k++) {        
         var optionsBuildCurrent = new Object();
         optionsBuildCurrent.host = host;
         optionsBuildCurrent.headers = headers;
-        optionsBuildCurrent.path = optionsBuild.path.replace('{job}', lastBuilds[k].itemId).replace('{teste}', lastBuilds[k].displayName);                
-        //console.log(optionsBuildCurrent.path);
+        optionsBuildCurrent.path = optionsBuild.path.replace('{job}', lastBuilds[k].itemId).replace('{teste}', lastBuilds[k].displayName);                        
         detailbuild(res, optionsBuildCurrent, lastBuilds, errosBuilds, k, buildsWithError);
     }
   };
@@ -143,6 +147,7 @@ module.exports = function(app) {
                     jenkinsJob.status_local = str.suites[j].cases[i].status;
                     jenkinsJob.status_integracao = str.suites[j].cases[i].status;
                     jenkinsJob.errorDetails = str.suites[j].cases[i].errorDetails;
+                    jenkinsJob.stderr = str.suites[j].cases[i].stderr;
                     testsWithError.push(jenkinsJob);
                   } 
                 };
@@ -183,10 +188,15 @@ module.exports = function(app) {
 
             var method = testeAtual.name;
             var jiraName = nameClass + "." + method;          
-            var jiraQuery = new jiraJql(jiraName);
+            var errorDetails = testeAtual.errorDetails;
+            var linkPrint = testeAtual.stderr;
+            var jiraQuery = new jiraJql(method);
+            var jiraQueryParent = new jiraJql(nameClass);
             var searchParams = new jiraSearchParams(jiraQuery.jql);
+            var searchParamsParent = new jiraSearchParams(jiraQueryParent.jql);
             var jsondata = JSON.stringify(searchParams);
-            var jiraClass = new jiraClassObj(method, nameClass, jiraName, jsondata);
+            var jsondataParent = JSON.stringify(searchParamsParent);
+            var jiraClass = new jiraClassObj(method, nameClass, jiraName, errorDetails, linkPrint, jsondata, jsondataParent);
 
             classList[nameClass].push(jiraClass);
             if(listNameClass.indexOf(nameClass) == -1) listNameClass.push(nameClass);
@@ -206,48 +216,88 @@ module.exports = function(app) {
       var metodos = classList[nameCurrentClass];
       if(metodos){
         totalTestesComErro = totalTestesComErro + metodos.length;
-        searchJiraCallParent(metodos); 
-        /*for(var x = 0; x < metodos.length; x++){         
-          if(metodos[x] != null){
-            totalTestesComErro++;       
-            //console.log('busca esse: ' + metodos[x].nameClass +'.'+metodos[x].method);     
-            searchJiraCall(metodos[x], metodos); 
-          }   
-        }*/  
-      }  
-      //classList[i] = metodos;
+        searchJiraCallParent(metodos, response.hashKey); 
+      }        
     }
 
     var objResponse = new Object();
     objResponse.totalErros = totalTestesComErro;
     objResponse.buildsWithError = buildsWithError;
+    objResponse.hashKey = response.hashKey;
     response.send(objResponse);
   }
   
-  function searchJiraCallParent(metodos){
+  function searchJiraCallParent(metodos, hashkey){
     var metodo = metodos[0];
+    function searchCallBack(res) {      
+      res.on('data', function(chunk) {
+        process.stdout.write(chunk);        
+        if(res.statusCode == 200){
+          var result = JSON.parse(chunk);          
+          if(result.total > 1){
+            console.log('Foi encontrado mais de um result, nao foi possivel criar ou fazer update '  + metodo.nameClass);        
+            var errorObj = new jiraResponseObject(metodo, result);
+            hashListCacheBuild[hashkey].findMultipleResults.push(errorObj);    
+          }else if(result.total == 1 && result.issues[0].fields.status.id != 6){            
+            console.log("Update Jira is not implemented." + metodo.nameClass);            
+            searchChild(metodos, result.issues[0].id, hashkey);            
+          }else{
+            console.log('jira sera criado : '+ metodo.nameClass);
+            criaJira(metodos, hashkey);          
+          }
+        }else{
+          console.log('erro ao buscar jira : '+ metodo.jsondataParent);
+          var errorObj = new jiraResponseObject(metodo, res.headers);
+          hashListCacheBuild[hashkey].errorInSearching.push(errorObj);
+        }
+      });
+    }
+
+    var searchOptions = new optionsJiraSearchIssue(metodo.jsondataParent);            
+    console.log("jsondataParent query ", metodo.jsondataParent);
+    var req = https.request(searchOptions, searchCallBack);
+    req.write(metodo.jsondataParent);
+    req.end();
+
+    req.on('error', function(e) {
+      console.error(e);
+    }); 
+
+  };
+
+  function searchChild(metodos, idParent, hashkey){
+      for (var i = metodos.length - 1; i >= 0; i--) {
+        searchJiraCallChild(metodos[i], idParent, hashkey);
+      };
+  };  
+
+  function searchJiraCallChild(metodo, idParent, hashkey){    
     function searchCallBack(res) {
-      //console.log("search statusCode: ", res.statusCode);
-      //console.log("headers: ", res);      
 
       res.on('data', function(chunk) {
         process.stdout.write(chunk);
-        //console.log('BODY: ' + chunk);
-        var result = JSON.parse(chunk);
-        //console.log("find result", result);
-        if(result.total > 1){
-          console.log('Foi encontrado mais de um result, nao foi possivel criar ou fazer update '  + metodo.jiraName);
-          //classList[i].jiraQueryJson[x] = undefined;
-          //metodos = metodos.splice(x, 1);                
-        }else if(result.total == 1 && result.issues[0].fields.status.id != 6){            
-          console.log("Update Jira is not implemented." + metodo.jiraName);
-          verificaFilhos(metodos, result.issues[0].id);
-          //classList[i].jiraQueryJson[x] = undefined;
-          //metodos = metodos.splice(x, 1);                
+        if(res.statusCode == 200){        
+          var result = JSON.parse(chunk);        
+          if(result.total > 1){
+            console.log('Foi encontrado mais de um result, nao foi possivel criar ou fazer update '  + metodo.jiraName);
+            var errorObj = new jiraResponseObject(metodo, result);
+            hashListCacheBuild[hashkey].findMultipleResults.push(errorObj);
+          }else if(result.total == 1 && result.issues[0].fields.status.id != 6){            
+            console.log("Update Jira is not implemented." + metodo.jiraName);
+            var errorObj = new jiraResponseObject(metodo, result);
+            console.log('hashkey', hashkey);
+            console.log('hashListCacheBuild', hashListCacheBuild);
+
+            hashListCacheBuild[hashkey].findWithoutUpdate.push(errorObj);                    
+          }else{
+            console.log('jira sera criado : '+ metodo.jiraName);
+            criaJiraChild(metodo, idParent, hashkey);
+          }
         }else{
-          console.log('jira sera criado : '+ metodo.jiraName);
-          criaJira(metodos);
-        }
+            console.log('erro ao buscar : '+ metodo.jiraName);            
+            var errorObj = new jiraResponseObject(metodo, "Status Code: " + res.statusCode);
+            hashListCacheBuild[hashkey].errorInSearching.push(errorObj);
+          }
       });
     }
 
@@ -263,71 +313,44 @@ module.exports = function(app) {
 
   };
 
-    function searchJiraCallParent(metodos){
-    var metodo = metodos[0];
-    function searchCallBack(res) {
-      //console.log("search statusCode: ", res.statusCode);
-      //console.log("headers: ", res);      
 
-      res.on('data', function(chunk) {
-        process.stdout.write(chunk);
-        //console.log('BODY: ' + chunk);
-        var result = JSON.parse(chunk);
-        //console.log("find result", result);
-        if(result.total > 1){
-          console.log('Foi encontrado mais de um result, nao foi possivel criar ou fazer update '  + metodo.jiraName);
-          //classList[i].jiraQueryJson[x] = undefined;
-          //metodos = metodos.splice(x, 1);                
-        }else if(result.total == 1 && result.issues[0].fields.status.id != 6){            
-          console.log("Update Jira is not implemented." + metodo.jiraName);
-          verificaFilhos(metodos, result.issues[0].id);
-          //classList[i].jiraQueryJson[x] = undefined;
-          //metodos = metodos.splice(x, 1);                
-        }else{
-          console.log('jira sera criado : '+ metodo.jiraName);
-          criaJira(metodos);
-        }
-      });
-    }
-
-    var searchOptions = new optionsJiraSearchIssue(metodo.jiraQueryJson);            
-
-    var req = https.request(searchOptions, searchCallBack);
-    req.write(metodo.jiraQueryJson);
-    req.end();
-
-    req.on('error', function(e) {
-      console.error(e);
-    }); 
-
-  };
-
-
-  var criaJira = function(jira){
-
-    console.log('jira', jira);
+  var criaJiraChild = function(jira, idParent, hashkey){
 
     if(jira){  
+      var desc = ""; 
+      if(jira.errorDetails != null){
+        desc = desc.concat('', jira.errorDetails);
+      }
+      if(jira.linkPrint != null){
+        desc = desc.concat('', jira.linkPrint); 
+      }
       var data = new Object;
       data.fields = {
+          parent : {id: idParent},
           project : {key: 'HANOI'},
-          issuetype : {id: '1'},
-          summary : jira.jiraName,
+          issuetype : {id: '5'},
+          summary : jira.method,
           labels: ["jenkins_test"],
-          description: jira.errorDetails
+          description: desc
       };
 
-      var jsondata = JSON.stringify(data);
-      console.log('criando jira', jsondata);
+      var jsondata = JSON.stringify(data);      
       var optionsCria = new optionsJiraCreateIssue(jsondata);
 
-
       var req = https.request(optionsCria, function(res) {
-        console.log("create statusCode: ", res.statusCode);
-        console.log("headers: ", res.headers);      
-
+        console.log("in criaJiraChild " + jsondata + " statusCode: ", res.statusCode);        
+        
         res.on('data', function(d) {
           process.stdout.write(d);
+          if(res.statusCode == 201){
+            var result = JSON.parse(d);
+            var errorObj = new jiraResponseObject(jsondata, result);
+            hashListCacheBuild[hashkey].createdTests.push(errorObj);
+          }else{
+            console.log('Erro ao criar jira', jsondata);
+            var errorObj = new jiraResponseObject(jsondata, "Status Code: " + res.statusCode);
+            hashListCacheBuild[hashkey].errorInCreation.push(errorObj);
+          }
         });
       });
       req.write(jsondata);
@@ -339,11 +362,65 @@ module.exports = function(app) {
     }
   };
 
-  function jiraClassObj(method, nameClass, jiraName, jiraQueryJson){
+  var criaJira = function(jiras, hashkey){
+      
+    var jira = jiras[0];    
+
+    if(jira){  
+      var data = new Object;
+      data.fields = {
+          project : {key: 'HANOI'},
+          issuetype : {id: '1'},
+          summary : jira.nameClass,
+          labels: ["jenkins_test"]
+          //description: jira.errorDetails
+      };
+
+      var jsondata = JSON.stringify(data);
+      console.log('criando jira', jsondata);
+      var optionsCria = new optionsJiraCreateIssue(jsondata);
+
+      function criaJiraCallback(res) {
+        console.log("in criaJira: " + jsondata + " - statusCode: " + res.statusCode);                
+        
+        res.on('data', function(d) {
+          process.stdout.write(d);      
+          if(res.statusCode == 201){
+            var result = JSON.parse(d);        
+            console.log('result criaJira', result);
+            var idParent = result.id;  
+            console.log('hashkey', hashkey);
+            console.log('hashListCacheBuild', hashListCacheBuild);
+            var errorObj = new jiraResponseObject(jsondata, result);
+            hashListCacheBuild[hashkey].createdTests.push(errorObj);          
+            searchChild(jiras, idParent, hashkey);
+          }else{
+            console.log('Erro ao criar jira', jsondata);
+            var errorObj = new jiraResponseObject(jsondata, res.headers);
+            hashListCacheBuild[hashkey].errorInCreation.push(errorObj);
+          }  
+        });
+      }
+
+
+      var req = https.request(optionsCria, criaJiraCallback);
+      req.write(jsondata);
+      req.end();
+
+      req.on('error', function(e) {
+        console.error(e);
+      });
+    }
+  };
+
+  function jiraClassObj(method, nameClass, jiraName, errorDetails, linkPrint, jiraQueryJson, jsondataParent){
     this.method = method;
     this.nameClass = nameClass;
     this.jiraName = jiraName;
+    this.errorDetails = errorDetails;
+    this.linkPrint = linkPrint;
     this.jiraQueryJson = jiraQueryJson;
+    this.jsondataParent = jsondataParent;
   };
 
 
@@ -386,14 +463,41 @@ module.exports = function(app) {
     buscarTestesIntegracao(res);
   };
 
-  
+  var jiraResponseObject = function(jira, desc){
+    this.jira = jira;
+    this.desc = desc;
+  };
+
+  var jiraResponse = function(){
+    this.createdTests = new Array();
+    this.findWithoutUpdate = new Array();
+    this.findMultipleResults = new Array();
+    this.errorInCreation = new Array();
+    this.errorInSearching = new Array();
+  }
+
+  var findResult = function(hashKey, res){
+    var result = hashListCacheBuild[hashKey];
+    if(result){
+      res.send(result);
+    }else{
+      res.send(404);
+    }
+  };
+
+  app.param('hashKey', function(req, res, next, hashKey) {  
+    req.hashKey = hashKey;
+    next();
+  })
 
   var TesteController = {
     createSheet : function(req, res) {      
       teste(req, res);
+    },
+    getResult: function(req, res){
+      findResult(req.hashKey, res);
     }
   }
   return TesteController;
 
 };
-
