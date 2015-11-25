@@ -7,12 +7,12 @@ module.exports = function(app) {
   var hashListCacheBuild = new Object();
 
   //jira
-  var usernameJira = "peo_cbrossa";
-  var passwordJira = "ccx";
+  var usernameJira = "user";
+  var passwordJira = "senha";
   var auth = "Basic " + new Buffer(usernameJira + ":" + passwordJira).toString("base64");
   var https = require('https');
   var optionsJiraDefault = {
-    hostname: 'jira.intranet.s.com.br',
+    hostname: 'jira.intranet.uol.com.br',
     port: 443,
     path: '/jira/rest/api/2/issue/HANOI-267',    
     headers: {
@@ -455,7 +455,7 @@ module.exports = function(app) {
   };
 
   function jiraJql(jiraName){      
-      this.jql = "project = HANOI AND Summary ~ \"" + jiraName + "\"";
+      this.jql = "project = HANOI AND type=5 AND Summary ~ \"" + jiraName + "\"";
   };
 
 
@@ -499,5 +499,4 @@ module.exports = function(app) {
     }
   }
   return TesteController;
-
 };
