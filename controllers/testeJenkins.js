@@ -190,8 +190,8 @@ module.exports = function(app) {
             var jiraName = nameClass + "." + method;          
             var errorDetails = testeAtual.errorDetails;
             var linkPrint = testeAtual.stderr;
-            var jiraQuery = new jiraJql(method);
-            var jiraQueryParent = new jiraJql(nameClass);
+            var jiraQuery = new jiraJqlChild(method);
+            var jiraQueryParent = new jiraJqlParent(nameClass);
             var searchParams = new jiraSearchParams(jiraQuery.jql);
             var searchParamsParent = new jiraSearchParams(jiraQueryParent.jql);
             var jsondata = JSON.stringify(searchParams);
@@ -454,8 +454,12 @@ module.exports = function(app) {
       this.fields = ["summary", "status", "assignee"];
   };
 
-  function jiraJql(jiraName){      
+  function jiraJqlChild(jiraName){      
       this.jql = "project = SIN AND type=5 AND Summary ~ \"" + jiraName + "\"";
+  };
+
+  function jiraJqlParent(jiraName){      
+      this.jql = "project = SIN AND type=3 AND Summary ~ \"" + jiraName + "\"";
   };
 
 
