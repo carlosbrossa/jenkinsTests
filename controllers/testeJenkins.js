@@ -7,8 +7,8 @@ module.exports = function(app) {
   var hashListCacheBuild = new Object();
 
   //jira
-  var usernameJira = "user";
-  var passwordJira = "senha";
+  var usernameJira = "svcacc_pagseguro_mvn";
+  var passwordJira = "Mf2!8Dh#";
   var auth = "Basic " + new Buffer(usernameJira + ":" + passwordJira).toString("base64");
   var https = require('https');
   var optionsJiraDefault = {
@@ -327,7 +327,7 @@ module.exports = function(app) {
       var data = new Object;
       data.fields = {
           parent : {id: idParent},
-          project : {key: 'HANOI'},
+          project : {key: 'SIN'},
           issuetype : {id: '5'},
           summary : jira.method,
           labels: ["jenkins_test"],
@@ -369,8 +369,8 @@ module.exports = function(app) {
     if(jira){  
       var data = new Object;
       data.fields = {
-          project : {key: 'HANOI'},
-          issuetype : {id: '1'},
+          project : {key: 'SIN'},
+          issuetype : {id: '3'},
           summary : jira.nameClass,
           labels: ["jenkins_test"]
           //description: jira.errorDetails
@@ -455,7 +455,7 @@ module.exports = function(app) {
   };
 
   function jiraJql(jiraName){      
-      this.jql = "project = HANOI AND type=5 AND Summary ~ \"" + jiraName + "\"";
+      this.jql = "project = SIN AND type=5 AND Summary ~ \"" + jiraName + "\"";
   };
 
 
